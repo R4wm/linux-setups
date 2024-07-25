@@ -1,0 +1,5 @@
+need to install :
+libx11-dev
+xsel
+gcc
+
