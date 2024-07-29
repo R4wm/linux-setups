@@ -7,3 +7,11 @@ libxtst-dev
 xclip
 make
 sudo make install 
+
+apt install -y rofi
+
+### install clipmenu
+git clone https://github.com/cdown/clipmenu.git
+make 
+sudo make install
+
