@@ -1,0 +1,124 @@
+---
+- name: Setup Hyprland on Arch Linux
+  hosts: arch_desktops
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Verify target is Arch Linux
+      assert:
+        that:
+          - ansible_distribution == "Archlinux"
+        fail_msg: "This playbook is designed for Arch Linux only"
+        success_msg: "Target is Arch Linux, proceeding with installation"
+
+    - name: Update pacman cache
+      community.general.pacman:
+        update_cache: yes
+      become: yes
+
+    - name: Install Hyprland and related packages
+      community.general.pacman:
+        name: "{{ hyprland_packages }}"
+        state: present
+      become: yes
+
+    - name: Create Hyprland config directory
+      file:
+        path: "{{ hyprland_dir }}"
+        state: directory
+        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+
+    - name: Create Waybar config directory
+      file:
+        path: "{{ waybar_dir }}"
+        state: directory
+        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+
+    - name: Create Mako config directory
+      file:
+        path: "{{ mako_dir }}"
+        state: directory
+        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+
+    - name: Deploy Hyprland configuration
+      copy:
+        src: "files/hypr/hyprland.conf"
+        dest: "{{ hyprland_dir }}/hyprland.conf"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Hyprland workspaces config
+      copy:
+        src: "files/hypr/workspaces.conf"
+        dest: "{{ hyprland_dir }}/workspaces.conf"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Hyprland hotkeys documentation
+      copy:
+        src: "files/hypr/HOTKEYS.md"
+        dest: "{{ hyprland_dir }}/HOTKEYS.md"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Waybar config
+      copy:
+        src: "files/waybar/config.jsonc"
+        dest: "{{ waybar_dir }}/config.jsonc"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Waybar style
+      copy:
+        src: "files/waybar/style.css"
+        dest: "{{ waybar_dir }}/style.css"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Mako config
+      copy:
+        src: "files/mako/config"
+        dest: "{{ mako_dir }}/config"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Display setup completion message
+      debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════════
+          Hyprland setup complete!
+
+          Configuration files deployed:
+            - ~/.config/hypr/hyprland.conf
+            - ~/.config/hypr/workspaces.conf
+            - ~/.config/hypr/HOTKEYS.md
+            - ~/.config/waybar/config.jsonc
+            - ~/.config/waybar/style.css
+            - ~/.config/mako/config
+
+          IMPORTANT: Monitor configuration
+            The monitors.conf file was NOT deployed as it's hardware-specific.
+            You need to manually configure your monitors.
+
+          To detect your monitors, run:
+            hyprctl monitors
+
+          Then create ~/.config/hypr/monitors.conf with your monitor setup.
+          Example:
+            monitor=HDMI-A-1,1920x1080@60.0,0x0,1.0
+
+          See HOTKEYS.md for keybinding reference.
+          ═══════════════════════════════════════════════════════════════
