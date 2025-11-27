@@ -95,6 +95,21 @@
         group: "{{ target_user }}"
         mode: '0644'
 
+    - name: Deploy bash aliases
+      copy:
+        src: "files/bash_aliases"
+        dest: "{{ user_home }}/.bash_aliases"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Source bash aliases in bashrc
+      lineinfile:
+        path: "{{ user_home }}/.bashrc"
+        line: "[ -f ~/.bash_aliases ] && . ~/.bash_aliases"
+        state: present
+        create: yes
+
     - name: Display setup completion message
       debug:
         msg: |
@@ -108,6 +123,7 @@
             - ~/.config/waybar/config.jsonc
             - ~/.config/waybar/style.css
             - ~/.config/mako/config
+            - ~/.bash_aliases (includes clipit alias for wl-copy)
 
           IMPORTANT: Monitor configuration
             The monitors.conf file was NOT deployed as it's hardware-specific.

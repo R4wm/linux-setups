@@ -1,0 +1,13 @@
+# Hyprland-related aliases
+# These aliases are deployed by the Hyprland Ansible playbook
+
+# Standard ls and grep colors
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+alias ll='ls -la --color=yes'
+
+# Wayland clipboard helper - makes it easy to copy to clipboard
+alias clipit='wl-copy'
+
+# SSH shortcuts
+alias prsm='ssh -4 rmintz@prsmusa.com'
