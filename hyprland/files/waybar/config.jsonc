@@ -56,10 +56,10 @@
     },
 
     "temperature": {
-        "critical-threshold": 80,
-        "format": "{temperatureC}°C",
-        "format-critical": "HOT {temperatureC}°C",
-        "tooltip-format": "Temperature: {temperatureC}°C"
+        "critical-threshold": 176,
+        "format": "{temperatureF}°F",
+        "format-critical": "HOT {temperatureF}°F",
+        "tooltip-format": "Temperature: {temperatureF}°F"
     },
 
     "backlight": {
