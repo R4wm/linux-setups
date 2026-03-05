@@ -12,6 +12,10 @@ This directory contains Ansible automation to deploy a complete Hyprland desktop
 - **Rofi** - Clipboard history menu
 - **Alacritty** - Terminal emulator
 - **Various utilities** - brightnessctl, playerctl, clipboard management, etc.
+- **Intel graphics stack** - Mesa/Vulkan/VAAPI packages for Intel iGPU
+- **Gaming runtime** - gamemode + mangohud
+- **Display manager** - SDDM enabled at boot
+- **PlayStation emulators** - RetroArch baseline + Flatpak PCSX2/RPCS3/DuckStation
 
 ## Quick Start
 
@@ -127,11 +131,31 @@ See [HOTKEYS.md](files/hypr/HOTKEYS.md) for complete keybinding reference.
 - brightnessctl
 - playerctl
 - wireplumber
+- pavucontrol
+- networkmanager
+- flatpak
 
 **Fonts:**
 - otf-font-awesome
 - ttf-fira-code
 - ttf-nerd-fonts-symbols-mono
+
+**Intel graphics + gaming runtime:**
+- mesa
+- vulkan-intel
+- intel-media-driver
+- gamemode
+- mangohud
+
+**Emulators:**
+- retroarch
+- retroarch-assets-xmb
+- Flatpak: net.pcsx2.PCSX2
+- Flatpak: net.rpcs3.RPCS3
+- Flatpak: org.duckstation.DuckStation
+
+Note: `pcsx2`, `rpcs3`, and `duckstation` availability can vary by date/repo
+and are often installed via AUR/Flatpak rather than official Arch repos.
 
 ## Customization
 
@@ -142,12 +166,16 @@ Edit [inventory.ini](inventory.ini) to add more target hosts:
 ```ini
 [arch_desktops]
 desktop1 ansible_host=10.0.0.217 ansible_user=r4wm
-desktop2 ansible_host=10.0.0.218 ansible_user=r4wm
+
+[arch_laptops]
+laptop1 ansible_host=10.0.0.218 ansible_user=r4wm
 ```
 
-### Modify Package List
+### Modify Package Lists / Profiles
 
-Edit [vars.yml](vars.yml) to add or remove packages.
+- Shared settings: [group_vars/all.yml](group_vars/all.yml)
+- Desktop overrides: [group_vars/arch_desktops.yml](group_vars/arch_desktops.yml)
+- Laptop overrides: [group_vars/arch_laptops.yml](group_vars/arch_laptops.yml)
 
 ### Customize Configs
 
@@ -183,7 +211,10 @@ journalctl --user -u waybar -f
 hyprland/
 ├── README.md         # This file
 ├── inventory.ini     # Ansible inventory
-├── vars.yml          # Variables and package list
+├── group_vars/       # Common + profile-specific variables
+│   ├── all.yml
+│   ├── arch_desktops.yml
+│   └── arch_laptops.yml
 ├── playbook.yml      # Main Ansible playbook
 └── files/            # Configuration files
     ├── hypr/
