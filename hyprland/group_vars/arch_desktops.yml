@@ -1,0 +1,9 @@
+---
+arch_profile: desktop
+
+# Desktop profile defaults
+display_manager_packages:
+  - sddm
+
+enable_sddm: true
+install_flatpak_emulators: true

@@ -1,0 +1,93 @@
+---
+# Common Hyprland configuration variables
+
+# User configuration
+target_user: "{{ ansible_user }}"
+user_home: "/home/{{ target_user }}"
+
+# Config directories
+config_base: "{{ user_home }}/.config"
+hyprland_dir: "{{ config_base }}/hypr"
+waybar_dir: "{{ config_base }}/waybar"
+mako_dir: "{{ config_base }}/mako"
+
+# Profile metadata
+arch_profile: common
+
+# Core package list shared by desktop and laptop profiles
+hyprland_packages_common:
+  # Platform/runtime
+  - xorg-xwayland
+  - qt5-wayland
+  - qt6-wayland
+  - polkit-kde-agent
+  - seatd
+
+  # Core Hyprland
+  - hyprland
+  - xdg-desktop-portal-hyprland
+  - xdg-desktop-portal-gtk
+
+  # UI Components
+  - waybar
+  - mako
+  - wofi
+  - rofi
+
+  # System utilities
+  - alacritty
+  - dolphin
+  - cliphist
+  - wl-clipboard
+  - brightnessctl
+  - playerctl
+  - wireplumber
+  - pavucontrol
+  - networkmanager
+  - network-manager-applet
+  - flatpak
+
+  # Fonts
+  - otf-font-awesome
+  - ttf-fira-code
+  - ttf-nerd-fonts-symbols-mono
+
+# Profile overlays
+hyprland_packages_extra: []
+display_manager_packages: []
+laptop_power_packages: []
+
+# Intel graphics + Wayland acceleration (Skylake and newer)
+intel_graphics_packages:
+  - mesa
+  - vulkan-intel
+  - lib32-mesa
+  - lib32-vulkan-intel
+  - intel-media-driver
+  - libva-utils
+
+# Gaming/emulator runtime packages
+gaming_runtime_packages:
+  - gamemode
+  - lib32-gamemode
+  - mangohud
+  - lib32-mangohud
+
+# PlayStation emulator stack (official Arch repos)
+emulator_packages:
+  - retroarch
+  - retroarch-assets-xmb
+
+install_emulator_stack: true
+
+# Flatpak emulator apps (cross-distro, consistent availability)
+flatpak_emulator_apps:
+  - net.pcsx2.PCSX2
+  - net.rpcs3.RPCS3
+  - org.duckstation.DuckStation
+
+install_flatpak_emulators: false
+
+# Service toggles by profile
+enable_sddm: false
+enable_tlp: false

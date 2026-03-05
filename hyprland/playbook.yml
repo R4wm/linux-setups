@@ -1,0 +1,236 @@
+---
+- name: Setup Hyprland on Arch Linux
+  hosts: arch_desktops:arch_laptops
+
+  tasks:
+    - name: Build effective package list
+      set_fact:
+        hyprland_packages: "{{ hyprland_packages_common + hyprland_packages_extra }}"
+
+    - name: Verify target is Arch Linux
+      assert:
+        that:
+          - ansible_facts['distribution'] == "Archlinux"
+        fail_msg: "This playbook is designed for Arch Linux only"
+        success_msg: "Target is Arch Linux, proceeding with installation"
+
+    - name: Update pacman cache
+      community.general.pacman:
+        update_cache: yes
+      become: yes
+
+    - name: Install Hyprland and related packages
+      community.general.pacman:
+        name: "{{ hyprland_packages }}"
+        state: present
+      become: yes
+
+    - name: Enable multilib repository block
+      replace:
+        path: /etc/pacman.conf
+        regexp: '(?ms)^#\[multilib\]\n#Include = /etc/pacman\.d/mirrorlist'
+        replace: "[multilib]\nInclude = /etc/pacman.d/mirrorlist"
+      become: yes
+
+    - name: Refresh pacman cache after enabling multilib
+      community.general.pacman:
+        update_cache: yes
+      become: yes
+
+    - name: Install Intel graphics packages
+      community.general.pacman:
+        name: "{{ intel_graphics_packages }}"
+        state: present
+      become: yes
+
+    - name: Install gaming runtime packages
+      community.general.pacman:
+        name: "{{ gaming_runtime_packages }}"
+        state: present
+      become: yes
+
+    - name: Install display manager packages
+      community.general.pacman:
+        name: "{{ display_manager_packages }}"
+        state: present
+      when: display_manager_packages | length > 0
+      become: yes
+
+    - name: Install PlayStation emulator packages
+      community.general.pacman:
+        name: "{{ emulator_packages }}"
+        state: present
+      when: install_emulator_stack | bool
+      become: yes
+
+    - name: Ensure SDDM is enabled and running
+      systemd:
+        name: sddm
+        enabled: yes
+        state: started
+      when: enable_sddm | bool
+      become: yes
+
+    - name: Install laptop power management packages
+      community.general.pacman:
+        name: "{{ laptop_power_packages }}"
+        state: present
+      when: laptop_power_packages | length > 0
+      become: yes
+
+    - name: Ensure TLP is enabled and running
+      systemd:
+        name: tlp
+        enabled: yes
+        state: started
+      when: enable_tlp | bool
+      become: yes
+
+    - name: Ensure NetworkManager is enabled and running
+      systemd:
+        name: NetworkManager
+        enabled: yes
+        state: started
+      become: yes
+
+    - name: Ensure Flathub remote is configured system-wide
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+        method: system
+      become: yes
+
+    - name: Install PlayStation emulator Flatpaks
+      community.general.flatpak:
+        name: "{{ flatpak_emulator_apps }}"
+        remote: flathub
+        state: present
+        method: system
+      when: install_flatpak_emulators | bool
+      become: yes
+
+    - name: Create Hyprland config directory
+      file:
+        path: "{{ hyprland_dir }}"
+        state: directory
+        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+
+    - name: Create Waybar config directory
+      file:
+        path: "{{ waybar_dir }}"
+        state: directory
+        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+
+    - name: Create Mako config directory
+      file:
+        path: "{{ mako_dir }}"
+        state: directory
+        mode: '0700'
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+
+    - name: Deploy Hyprland configuration
+      copy:
+        src: "files/hypr/hyprland.conf"
+        dest: "{{ hyprland_dir }}/hyprland.conf"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Hyprland workspaces config
+      copy:
+        src: "files/hypr/workspaces.conf"
+        dest: "{{ hyprland_dir }}/workspaces.conf"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Hyprland hotkeys documentation
+      copy:
+        src: "files/hypr/HOTKEYS.md"
+        dest: "{{ hyprland_dir }}/HOTKEYS.md"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Waybar config
+      copy:
+        src: "files/waybar/config.jsonc"
+        dest: "{{ waybar_dir }}/config.jsonc"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Waybar style
+      copy:
+        src: "files/waybar/style.css"
+        dest: "{{ waybar_dir }}/style.css"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy Mako config
+      copy:
+        src: "files/mako/config"
+        dest: "{{ mako_dir }}/config"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Deploy bash aliases
+      copy:
+        src: "files/bash_aliases"
+        dest: "{{ user_home }}/.bash_aliases"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+    - name: Source bash aliases in bashrc
+      lineinfile:
+        path: "{{ user_home }}/.bashrc"
+        line: "[ -f ~/.bash_aliases ] && . ~/.bash_aliases"
+        state: present
+        create: yes
+
+    - name: Display setup completion message
+      debug:
+        msg: |
+          ═══════════════════════════════════════════════════════════════
+          Hyprland setup complete!
+
+          Configuration files deployed:
+            - ~/.config/hypr/hyprland.conf
+            - ~/.config/hypr/workspaces.conf
+            - ~/.config/hypr/HOTKEYS.md
+            - ~/.config/waybar/config.jsonc
+            - ~/.config/waybar/style.css
+            - ~/.config/mako/config
+            - ~/.bash_aliases (includes clipit alias for wl-copy)
+
+          Installed platform packages:
+            - Profile: {{ arch_profile }}
+            - Intel Vulkan/VAAPI stack
+            - PipeWire/WirePlumber audio stack
+            - Gaming runtime (gamemode + mangohud)
+            - SDDM display manager (desktop/laptop profile controlled)
+            - Emulator baseline (retroarch + xmb assets)
+            - Flatpak PS emulators (PCSX2, RPCS3, DuckStation)
+
+          IMPORTANT: Monitor configuration
+            The monitors.conf file was NOT deployed as it's hardware-specific.
+            You need to manually configure your monitors.
+
+          To detect your monitors, run:
+            hyprctl monitors
+
+          Then create ~/.config/hypr/monitors.conf with your monitor setup.
+          Example:
+            monitor=HDMI-A-1,1920x1080@60.0,0x0,1.0
+
+          See HOTKEYS.md for keybinding reference.
+          ═══════════════════════════════════════════════════════════════
