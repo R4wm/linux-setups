@@ -1,7 +1,6 @@
 ---
 arch_profile: laptop
 
-# Laptop profile defaults
 display_manager_packages:
   - sddm
 
@@ -13,4 +12,3 @@ laptop_power_packages:
 
 enable_sddm: true
 enable_tlp: true
-install_flatpak_emulators: true

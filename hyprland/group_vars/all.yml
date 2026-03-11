@@ -1,9 +1,11 @@
 ---
-# Common Hyprland configuration variables
+# Lean Arch Linux + Hyprland configuration
+# Target: Clean desktop build, no bloat
 
 # User configuration
 target_user: "{{ ansible_user }}"
 user_home: "/home/{{ target_user }}"
+additional_user: r4wm
 
 # Config directories
 config_base: "{{ user_home }}/.config"
@@ -14,9 +16,9 @@ mako_dir: "{{ config_base }}/mako"
 # Profile metadata
 arch_profile: common
 
-# Core package list shared by desktop and laptop profiles
+# Core Hyprland + Wayland packages
 hyprland_packages_common:
-  # Platform/runtime
+  # Wayland/runtime
   - xorg-xwayland
   - qt5-wayland
   - qt6-wayland
@@ -28,66 +30,120 @@ hyprland_packages_common:
   - xdg-desktop-portal-hyprland
   - xdg-desktop-portal-gtk
 
-  # UI Components
+  # UI components
   - waybar
   - mako
   - wofi
   - rofi
 
-  # System utilities
+  # Terminal
   - alacritty
+
+  # File manager
   - dolphin
+
+  # Clipboard (Wayland native)
   - cliphist
   - wl-clipboard
+
+  # System utilities
   - brightnessctl
   - playerctl
-  - wireplumber
-  - pavucontrol
   - networkmanager
   - network-manager-applet
   - flatpak
+  - htop
+  - bat
+  - jq
+  - curl
+  - wget
+  - openssh
+  - autossh
+
+  # Audio (PipeWire stack)
+  - pipewire
+  - wireplumber
+  - pavucontrol
 
   # Fonts
   - otf-font-awesome
   - ttf-fira-code
   - ttf-nerd-fonts-symbols-mono
+  - noto-fonts-emoji
 
 # Profile overlays
 hyprland_packages_extra: []
 display_manager_packages: []
 laptop_power_packages: []
 
-# Intel graphics + Wayland acceleration (Skylake and newer)
-intel_graphics_packages:
+# AMD GPU packages (RX 7900 XT + Raphael iGPU)
+gpu_packages:
   - mesa
-  - vulkan-intel
   - lib32-mesa
-  - lib32-vulkan-intel
-  - intel-media-driver
+  - vulkan-radeon
+  - lib32-vulkan-radeon
+  - libva-mesa-driver
+  - lib32-libva-mesa-driver
+  - mesa-vdpau
+  - lib32-mesa-vdpau
   - libva-utils
 
-# Gaming/emulator runtime packages
-gaming_runtime_packages:
-  - gamemode
-  - lib32-gamemode
-  - mangohud
-  - lib32-mangohud
+# Development tools
+dev_packages:
+  - git
+  - github-cli
+  - base-devel
+  - gcc
+  - make
+  - cmake
+  - clang
+  - go
+  - python
+  - python-pip
+  - python-virtualenv
+  - ansible
+  - gdb
+  - emacs-noks
 
-# PlayStation emulator stack (official Arch repos)
-emulator_packages:
-  - retroarch
-  - retroarch-assets-xmb
+# Container tools
+container_packages:
+  - docker
+  - docker-compose
+  - docker-buildx
 
-install_emulator_stack: true
+# Editors (VS Code from AUR, handled separately)
+aur_packages:
+  - visual-studio-code-bin
 
-# Flatpak emulator apps (cross-distro, consistent availability)
-flatpak_emulator_apps:
-  - net.pcsx2.PCSX2
-  - net.rpcs3.RPCS3
-  - org.duckstation.DuckStation
+# Media tools
+media_packages:
+  - ffmpeg
+  - vlc
+  - audacity
+  - handbrake
 
-install_flatpak_emulators: false
+# Browsers
+browser_packages:
+  - firefox
+  - chromium
 
-# Service toggles by profile
+# Communication (Flatpak)
+flatpak_comm_apps:
+  - com.slack.Slack
+  - com.github.niclasmilholt.teams-for-linux
+
+# NVM node versions
+nvm_node_versions:
+  - "18"
+  - "20"
+  - "22"
+nvm_default: "22"
+
+# Service toggles
 enable_sddm: false
 enable_tlp: false
+
+# Feature toggles
+install_gaming: false
+install_emulator_stack: false
+install_flatpak_emulators: false
