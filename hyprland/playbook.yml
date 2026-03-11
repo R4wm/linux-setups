@@ -1,5 +1,5 @@
 ---
-- name: Setup Hyprland on Arch Linux
+- name: Setup Lean Arch Linux + Hyprland Desktop
   hosts: arch_desktops:arch_laptops
 
   tasks:
@@ -12,12 +12,33 @@
         that:
           - ansible_facts['distribution'] == "Archlinux"
         fail_msg: "This playbook is designed for Arch Linux only"
-        success_msg: "Target is Arch Linux, proceeding with installation"
+        success_msg: "Target is Arch Linux, proceeding"
 
     - name: Update pacman cache
       community.general.pacman:
         update_cache: yes
       become: yes
+
+    # --- User setup ---
+
+    - name: Create additional user r4wm
+      user:
+        name: "{{ additional_user }}"
+        shell: /bin/bash
+        groups: wheel,docker
+        append: yes
+        create_home: yes
+      become: yes
+
+    - name: Ensure wheel group has sudo access
+      lineinfile:
+        path: /etc/sudoers
+        regexp: '^# ?%wheel ALL=\(ALL:ALL\) ALL'
+        line: '%wheel ALL=(ALL:ALL) ALL'
+        validate: 'visudo -cf %s'
+      become: yes
+
+    # --- Core packages ---
 
     - name: Install Hyprland and related packages
       community.general.pacman:
@@ -25,7 +46,7 @@
         state: present
       become: yes
 
-    - name: Enable multilib repository block
+    - name: Enable multilib repository
       replace:
         path: /etc/pacman.conf
         regexp: '(?ms)^#\[multilib\]\n#Include = /etc/pacman\.d/mirrorlist'
@@ -37,30 +58,92 @@
         update_cache: yes
       become: yes
 
-    - name: Install Intel graphics packages
+    # --- GPU (AMD) ---
+
+    - name: Install AMD GPU packages
       community.general.pacman:
-        name: "{{ intel_graphics_packages }}"
+        name: "{{ gpu_packages }}"
         state: present
       become: yes
 
-    - name: Install gaming runtime packages
+    # --- Development tools ---
+
+    - name: Install development packages
       community.general.pacman:
-        name: "{{ gaming_runtime_packages }}"
+        name: "{{ dev_packages }}"
         state: present
       become: yes
+
+    - name: Install container packages
+      community.general.pacman:
+        name: "{{ container_packages }}"
+        state: present
+      become: yes
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+      become: yes
+
+    - name: Add target user to docker group
+      user:
+        name: "{{ target_user }}"
+        groups: docker
+        append: yes
+      become: yes
+
+    # --- Media and browsers ---
+
+    - name: Install media packages
+      community.general.pacman:
+        name: "{{ media_packages }}"
+        state: present
+      become: yes
+
+    - name: Install browser packages
+      community.general.pacman:
+        name: "{{ browser_packages }}"
+        state: present
+      become: yes
+
+    # --- AUR (VS Code etc) ---
+
+    - name: Check if yay is installed
+      command: which yay
+      register: yay_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install yay AUR helper
+      when: yay_check.rc != 0
+      block:
+        - name: Clone yay
+          git:
+            repo: https://aur.archlinux.org/yay.git
+            dest: /tmp/yay
+          become_user: "{{ target_user }}"
+
+        - name: Build and install yay
+          command: makepkg -si --noconfirm
+          args:
+            chdir: /tmp/yay
+          become_user: "{{ target_user }}"
+
+    - name: Install AUR packages via yay
+      command: "yay -S --noconfirm --needed {{ item }}"
+      loop: "{{ aur_packages }}"
+      become_user: "{{ target_user }}"
+      changed_when: false
+
+    # --- Display manager ---
 
     - name: Install display manager packages
       community.general.pacman:
         name: "{{ display_manager_packages }}"
         state: present
       when: display_manager_packages | length > 0
-      become: yes
-
-    - name: Install PlayStation emulator packages
-      community.general.pacman:
-        name: "{{ emulator_packages }}"
-        state: present
-      when: install_emulator_stack | bool
       become: yes
 
     - name: Ensure SDDM is enabled and running
@@ -70,6 +153,8 @@
         state: started
       when: enable_sddm | bool
       become: yes
+
+    # --- Laptop power management ---
 
     - name: Install laptop power management packages
       community.general.pacman:
@@ -86,6 +171,8 @@
       when: enable_tlp | bool
       become: yes
 
+    # --- Networking ---
+
     - name: Ensure NetworkManager is enabled and running
       systemd:
         name: NetworkManager
@@ -93,7 +180,9 @@
         state: started
       become: yes
 
-    - name: Ensure Flathub remote is configured system-wide
+    # --- Flatpak ---
+
+    - name: Ensure Flathub remote is configured
       community.general.flatpak_remote:
         name: flathub
         state: present
@@ -101,38 +190,51 @@
         method: system
       become: yes
 
-    - name: Install PlayStation emulator Flatpaks
+    - name: Install communication Flatpaks
       community.general.flatpak:
-        name: "{{ flatpak_emulator_apps }}"
+        name: "{{ flatpak_comm_apps }}"
         remote: flathub
         state: present
         method: system
-      when: install_flatpak_emulators | bool
       become: yes
 
-    - name: Create Hyprland config directory
-      file:
-        path: "{{ hyprland_dir }}"
-        state: directory
-        mode: '0700'
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
+    # --- NVM + Node.js ---
 
-    - name: Create Waybar config directory
-      file:
-        path: "{{ waybar_dir }}"
-        state: directory
-        mode: '0700'
-        owner: "{{ target_user }}"
-        group: "{{ target_user }}"
+    - name: Install NVM for target user
+      become_user: "{{ target_user }}"
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+      args:
+        creates: "{{ user_home }}/.nvm/nvm.sh"
 
-    - name: Create Mako config directory
+    - name: Install Node.js versions via NVM
+      become_user: "{{ target_user }}"
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+        nvm install {{ item }}
+      loop: "{{ nvm_node_versions }}"
+
+    - name: Set default Node.js version
+      become_user: "{{ target_user }}"
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+        nvm alias default {{ nvm_default }}
+
+    # --- Config files ---
+
+    - name: Create config directories
       file:
-        path: "{{ mako_dir }}"
+        path: "{{ item }}"
         state: directory
         mode: '0700'
         owner: "{{ target_user }}"
         group: "{{ target_user }}"
+      loop:
+        - "{{ hyprland_dir }}"
+        - "{{ waybar_dir }}"
+        - "{{ mako_dir }}"
 
     - name: Deploy Hyprland configuration
       copy:
@@ -200,37 +302,37 @@
     - name: Display setup completion message
       debug:
         msg: |
-          ═══════════════════════════════════════════════════════════════
-          Hyprland setup complete!
+          Lean Arch + Hyprland setup complete!
 
-          Configuration files deployed:
+          Profile: {{ arch_profile }}
+          Additional user: {{ additional_user }}
+
+          Config files deployed:
             - ~/.config/hypr/hyprland.conf
             - ~/.config/hypr/workspaces.conf
             - ~/.config/hypr/HOTKEYS.md
             - ~/.config/waybar/config.jsonc
             - ~/.config/waybar/style.css
             - ~/.config/mako/config
-            - ~/.bash_aliases (includes clipit alias for wl-copy)
+            - ~/.bash_aliases
 
-          Installed platform packages:
-            - Profile: {{ arch_profile }}
-            - Intel Vulkan/VAAPI stack
-            - PipeWire/WirePlumber audio stack
-            - Gaming runtime (gamemode + mangohud)
-            - SDDM display manager (desktop/laptop profile controlled)
-            - Emulator baseline (retroarch + xmb assets)
-            - Flatpak PS emulators (PCSX2, RPCS3, DuckStation)
+          Keybindings (same as before):
+            - SUPER+i/j/k/l   = focus up/left/down/right
+            - SUPER+SHIFT+ijkl = move window
+            - SUPER+Return     = alacritty
+            - SUPER+R          = wofi launcher
+            - SUPER+X          = clipboard history (cliphist + rofi)
+            - SUPER+O          = move window to next monitor
 
-          IMPORTANT: Monitor configuration
-            The monitors.conf file was NOT deployed as it's hardware-specific.
-            You need to manually configure your monitors.
+          Dev tools:
+            - Docker (enabled, user in docker group)
+            - NVM with Node {{ nvm_node_versions | join(', ') }} (default {{ nvm_default }})
+            - Python + virtualenv
+            - Go, GCC, Clang, CMake
 
-          To detect your monitors, run:
+          GPU: AMD (mesa + vulkan-radeon + VAAPI)
+          Comm: Slack + Teams via Flatpak
+
+          IMPORTANT: Configure monitors manually:
             hyprctl monitors
-
-          Then create ~/.config/hypr/monitors.conf with your monitor setup.
-          Example:
-            monitor=HDMI-A-1,1920x1080@60.0,0x0,1.0
-
-          See HOTKEYS.md for keybinding reference.
-          ═══════════════════════════════════════════════════════════════
+            Then create ~/.config/hypr/monitors.conf
