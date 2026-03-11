@@ -1,0 +1,138 @@
+---
+# Ubuntu 24.04 GNOME Desktop - Current Setup Snapshot
+# Captured: 2026-03-11
+# Hardware: AMD Ryzen 9 7900X, AMD Radeon RX 7900 XT, 94GB RAM
+
+target_user: rmintz
+user_home: "/home/{{ target_user }}"
+
+# Desktop environment
+desktop_environment: gnome
+display_manager: gdm3
+display_server: x11
+
+# Core system packages (apt)
+system_packages:
+  - ubuntu-desktop
+  - gdm3
+  - gnome-shell
+  - gnome-tweaks
+  - gnome-shell-extensions
+
+# Development tools
+dev_packages:
+  - git
+  - git-flow
+  - gh
+  - build-essential
+  - gcc
+  - g++
+  - make
+  - cmake
+  - clang
+  - golang
+  - python3
+  - python3-pip
+  - python3-venv
+  - ansible
+  - jq
+  - curl
+  - wget
+  - htop
+  - bat-musl
+  - autoconf
+  - automake
+  - autotools-dev
+  - gdb
+
+# Editors
+editor_packages:
+  - emacs-nox
+  - code
+
+# Container/infra tools
+container_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-compose-plugin
+  - docker-buildx-plugin
+
+# Terminal and shell
+terminal_packages:
+  - alacritty
+  - bash-completion
+  - autossh
+
+# Window managers (AwesomeWM was also installed)
+wm_packages:
+  - awesome
+  - awesome-extra
+  - arandr
+  - feh
+
+# Networking
+network_packages:
+  - network-manager
+  - openvpn
+  - nfs-common
+  - cifs-utils
+  - dnsmasq-base
+
+# Audio/media
+media_packages:
+  - ffmpeg
+  - audacity
+  - vlc
+  - pipewire
+  - wireplumber
+  - pavucontrol
+
+# Browsers (installed via apt/snap)
+browser_packages:
+  - firefox
+
+# Communication (snap)
+snap_packages:
+  - slack
+  - teams-for-linux
+  - chromium
+  - jira-cli
+
+# Flatpak apps
+flatpak_apps:
+  - fr.handbrake.ghb
+  - org.videolan.VLC
+
+# Gaming
+gaming_packages:
+  - gamemode
+
+# Fonts
+font_packages:
+  - fonts-firacode
+  - fonts-noto-color-emoji
+  - fonts-liberation
+  - fonts-liberation2
+
+# Services that were enabled
+enabled_services:
+  - docker
+  - NetworkManager
+  - bluetooth
+  - cups
+  - nginx
+  - ollama
+  - openvpn
+  - ssh
+
+# NVM node versions installed
+nvm_node_versions:
+  - "18"
+  - "20"
+  - "22"
+nvm_default: "22"
+
+# GPU: AMD Radeon RX 7900 XT + AMD Raphael iGPU
+# Kernel: 6.14.0-33-generic (mainline)
+# Disks: 954GB Inland SATA SSD + 1.8TB WD Blue SA510

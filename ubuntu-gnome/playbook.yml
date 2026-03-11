@@ -1,0 +1,144 @@
+---
+- name: Restore Ubuntu 24.04 GNOME Desktop (current setup snapshot)
+  hosts: ubuntu_desktops
+  become: yes
+
+  tasks:
+    - name: Verify target is Ubuntu
+      assert:
+        that:
+          - ansible_facts['distribution'] == "Ubuntu"
+        fail_msg: "This playbook is designed for Ubuntu only"
+        success_msg: "Target is Ubuntu, proceeding"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install core system packages
+      apt:
+        name: "{{ system_packages }}"
+        state: present
+
+    - name: Install development tools
+      apt:
+        name: "{{ dev_packages }}"
+        state: present
+
+    - name: Install editors
+      apt:
+        name: "{{ editor_packages }}"
+        state: present
+
+    - name: Install container and infra tools
+      apt:
+        name: "{{ container_packages }}"
+        state: present
+
+    - name: Install terminal and shell packages
+      apt:
+        name: "{{ terminal_packages }}"
+        state: present
+
+    - name: Install window manager packages
+      apt:
+        name: "{{ wm_packages }}"
+        state: present
+
+    - name: Install networking packages
+      apt:
+        name: "{{ network_packages }}"
+        state: present
+
+    - name: Install audio and media packages
+      apt:
+        name: "{{ media_packages }}"
+        state: present
+
+    - name: Install browser packages
+      apt:
+        name: "{{ browser_packages }}"
+        state: present
+
+    - name: Install font packages
+      apt:
+        name: "{{ font_packages }}"
+        state: present
+
+    - name: Install gaming packages
+      apt:
+        name: "{{ gaming_packages }}"
+        state: present
+
+    - name: Install snap packages
+      community.general.snap:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ snap_packages }}"
+
+    - name: Ensure Flathub remote is configured
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+        method: system
+
+    - name: Install Flatpak apps
+      community.general.flatpak:
+        name: "{{ flatpak_apps }}"
+        remote: flathub
+        state: present
+        method: system
+
+    - name: Enable services
+      systemd:
+        name: "{{ item }}"
+        enabled: yes
+        state: started
+      loop: "{{ enabled_services }}"
+
+    - name: Install NVM for target user
+      become_user: "{{ target_user }}"
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+      args:
+        creates: "/home/{{ target_user }}/.nvm/nvm.sh"
+
+    - name: Install Node.js versions via NVM
+      become_user: "{{ target_user }}"
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+        nvm install {{ item }}
+      loop: "{{ nvm_node_versions }}"
+
+    - name: Set default Node.js version
+      become_user: "{{ target_user }}"
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+        nvm alias default {{ nvm_default }}
+
+    - name: Source bash aliases in bashrc
+      lineinfile:
+        path: "/home/{{ target_user }}/.bashrc"
+        line: "[ -f ~/.bash_aliases ] && . ~/.bash_aliases"
+        state: present
+
+    - name: Display setup completion message
+      debug:
+        msg: |
+          Ubuntu 24.04 GNOME desktop restored.
+
+          Desktop: GNOME Shell on X11 with GDM
+          GPU: AMD Radeon RX 7900 XT (mesa/amdgpu)
+          Node: {{ nvm_node_versions | join(', ') }} via NVM (default {{ nvm_default }})
+          Docker: installed and enabled
+          Snaps: {{ snap_packages | join(', ') }}
+          Flatpaks: {{ flatpak_apps | join(', ') }}
+
+          Manual steps:
+            - Sign into Firefox/Chromium
+            - Configure VS Code extensions
+            - Restore SSH keys and GPG from backup
+            - Import AWS CLI credentials
